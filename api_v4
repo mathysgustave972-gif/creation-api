@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+
+# -*- coding: utf-8 -*-
+
+
+
+from flask import Flask, jsonify, request
+
+from db import Database
+
+
+
+app = Flask(__name__)
+
+
+
+db = Database("192.168.1.132", "extern_user", "Bt5@c13l972", "ciel2027")
+
+#db = Database("127.0.0.1", "root", "", "ciel2027")
+
+    
+
+@app.route('/v4/etudiants/', methods=['GET'])
+
+def getEtudiants():
+
+    code = db.login(request)
+
+    if code == 500:
+
+        return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+
+    if code == 401:
+
+        return jsonify({'message': 'Accès non autorisé'}), 401
+
+        
+
+    etudiants = []
+
+    data = db.readAll()
+
+    if data == 401:
+
+        return jsonify("Requête invalide"), 400
+
+    if data == 400:
+
+        return jsonify("Requête invalide"), 400
+
+    for row in data:
+
+        etudiant = {
+
+            "idetudiant": row[0],
+
+            "nom": row[1],
+
+            "prenom": row[2],
+
+            "email": row[3],
+
+            "telephone": row[4]
+
+            }
+
+        etudiants.append(etudiant)
+
+    return jsonify(etudiants), 200
+
+
+
+@app.route('/v4/etudiants/<int:id>', methods=['GET'])
+
+def getEtudiant(id):
+
+    code = db.login(request)
+
+    if code == 500:
+
+        return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+
+    if code == 401:
+
+        return jsonify({'message': 'Accès non autorisé'}), 401
+
+    
+
+    data = db.readOne(id)
+
+    if data == 400:
+
+        return jsonify("Requête invalide"), 400
+
+    if data != 404:
+
+        etudiant = {
+
+            "idetudiant": data[0],
+
+            "nom": data[1],
+
+            "prenom": data[2],
+
+            "email": data[3],
+
+            "telephone": data[4]
+
+        }
+
+        return jsonify(etudiant), 200
+
+    else: 
+
+        return jsonify("id invalide"), 404
+
+@app.route('/v4/etudiants/', methods=['POST'])
+def addEtudiant():
+    code = db.login(request)
+    if code == 500:
+        return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+    if code == 401:
+        return jsonify({'message': 'Accès non autorisé'}), 401
+
+    try:
+        data = request.get_json()
+        result = db.create(data['nom'], data['prenom'], data['email'], data['telephone'])
+        if result == 500:
+            return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+        if result == 400:
+            return jsonify("Requête invalide"), 400
+        return jsonify({"message": "Ajout OK"}), 201
+    except (TypeError, KeyError):
+        return jsonify("Requête invalide"), 400
+
+@app.route('/v4/etudiants/<int:id>', methods=['PUT'])
+def updateEtudiant(id):
+    result = db.login (request)
+    if result == 500:
+        return jsonify({'message':'Echec de connexion a la base de donnees'}),
+    if result == 401:
+        return jsonify({'message':'Acces non autorise'}),401
+
+
+    nom = request.json['nom']
+    prenom = request.json['prenom']
+    email = request.json['email']
+    telephone = request.json['telephone']
+    result = db.update(id, nom, prenom, email, telephone)
+    if result == 200:
+        return jsonify({'message':'modification ok'}), 200
+    else:
+        return jsonify({'message':'erreur modification'}), 400
+    #return jsonify({'message':'modification OK'})
+
+
+@app.route('/v4/etudiants/<int:id>', methods=['DELETE'])
+def deleteEtudiant(id):
+    code = db.login(request)
+    if code == 500:
+        return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+    if code == 401:
+        return jsonify({'message': 'Accès non autorisé'}), 401
+
+    result = db.delete(id)
+    if result == 500:
+        return jsonify({'message': 'Echec de connexion à la base de données'}), 500
+    if result == 404:
+        return jsonify("id invalide"), 404
+    if result == 400:
+        return jsonify("Requête invalide"), 400
+    return jsonify({"message": "Suppression OK"}), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port = 5000, debug=True)
+
+
+
+if __name__ == '__main__':
+
+    app.run(host='0.0.0.0', port = 5001, debug=True)
